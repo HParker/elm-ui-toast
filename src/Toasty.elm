@@ -126,12 +126,13 @@ classes.
 
 -}
 
-import Html exposing (..)
-import Html.Events exposing (..)
-import Html.Keyed
 import Process
 import Random exposing (Seed)
 import Task
+
+import Element exposing (..)
+import Element.Events exposing (onClick)
+import Element.Keyed
 
 
 {-| Represents the stack of current toasts notifications. You can model a toast
@@ -181,10 +182,10 @@ type Msg a
 type Config msg
     = Config
         { transitionOutDuration : Float
-        , transitionOutAttrs : List (Html.Attribute msg)
-        , transitionInAttrs : List (Html.Attribute msg)
-        , containerAttrs : List (Html.Attribute msg)
-        , itemAttrs : List (Html.Attribute msg)
+        , transitionOutAttrs : List (Element.Attribute msg)
+        , transitionInAttrs : List (Element.Attribute msg)
+        , containerAttrs : List (Element.Attribute msg)
+        , itemAttrs : List (Element.Attribute msg)
         , delay : Float
         }
 
@@ -224,14 +225,14 @@ transitionOutDuration time (Config cfg) =
 
 {-| Lets you set the HTML attributes to add to the toast container when transitioning in.
 -}
-transitionInAttrs : List (Html.Attribute msg) -> Config msg -> Config msg
+transitionInAttrs : List (Element.Attribute msg) -> Config msg -> Config msg
 transitionInAttrs attrs (Config cfg) =
     Config { cfg | transitionInAttrs = attrs }
 
 
 {-| Lets you set the HTML attributes to add to the toast container when transitioning out.
 -}
-transitionOutAttrs : List (Html.Attribute msg) -> Config msg -> Config msg
+transitionOutAttrs : List (Element.Attribute msg) -> Config msg -> Config msg
 transitionOutAttrs attrs (Config cfg) =
     Config { cfg | transitionOutAttrs = attrs }
 
@@ -239,7 +240,7 @@ transitionOutAttrs attrs (Config cfg) =
 {-| Lets you set the HTML attributes to add to the toasts stack container. This will help
 you style and position the toast stack however you like by adding classes or inline styles.
 -}
-containerAttrs : List (Html.Attribute msg) -> Config msg -> Config msg
+containerAttrs : List (Element.Attribute msg) -> Config msg -> Config msg
 containerAttrs attrs (Config cfg) =
     Config { cfg | containerAttrs = attrs }
 
@@ -247,7 +248,7 @@ containerAttrs attrs (Config cfg) =
 {-| Lets you set the HTML attributes to add to each toast container. This will help
 you style and arrange the toasts however you like by adding classes or inline styles.
 -}
-itemAttrs : List (Html.Attribute msg) -> Config msg -> Config msg
+itemAttrs : List (Element.Attribute msg) -> Config msg -> Config msg
 itemAttrs attrs (Config cfg) =
     Config { cfg | itemAttrs = attrs }
 
@@ -411,7 +412,7 @@ give it a function that knows how to render your toasts model.
             ]
 
 -}
-view : Config msg -> (a -> Html msg) -> (Msg a -> msg) -> Stack a -> Html msg
+view : Config msg -> (a -> Element msg) -> (Msg a -> msg) -> Stack a -> Element msg
 view cfg toastView tagger (Stack toasts seed) =
     let
         (Config c) =
@@ -421,15 +422,14 @@ view cfg toastView tagger (Stack toasts seed) =
         text ""
 
     else
-        Html.Keyed.ol c.containerAttrs <| List.map (\toast -> itemContainer cfg tagger toast toastView) toasts
-
+        Element.Keyed.column c.containerAttrs <| List.map (\toast -> itemContainer cfg tagger toast toastView) toasts
 
 getNewId : Seed -> ( Id, Seed )
 getNewId seed =
     Random.step (Random.int Random.minInt Random.maxInt) seed
 
 
-itemContainer : Config msg -> (Msg a -> msg) -> ( Id, Status, a ) -> (a -> Html msg) -> ( String, Html msg )
+itemContainer : Config msg -> (Msg a -> msg) -> ( Id, Status, a ) -> (a -> Element msg) -> ( String, Element msg )
 itemContainer (Config cfg) tagger ( id, status, toast ) toastView =
     let
         attrs =
@@ -440,4 +440,4 @@ itemContainer (Config cfg) tagger ( id, status, toast ) toastView =
                 Leaving ->
                     cfg.transitionOutAttrs
     in
-    ( String.fromInt id, li (cfg.itemAttrs ++ attrs ++ [ onClick (tagger <| TransitionOut id) ]) [ toastView toast ] )
+    ( String.fromInt id, el (cfg.itemAttrs ++ attrs ++ [ onClick (tagger <| TransitionOut id) ]) (toastView toast) )

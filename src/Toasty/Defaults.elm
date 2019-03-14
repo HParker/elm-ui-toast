@@ -16,8 +16,10 @@ See a [demo](http://pablen-toasty-demo.surge.sh/).
 
 -}
 
-import Html exposing (..)
-import Html.Attributes exposing (..)
+import Element exposing (..)
+import Element.Region
+import Html
+import Html.Attributes
 import Toasty
 
 
@@ -43,44 +45,32 @@ config =
         |> Toasty.delay 5000
 
 
-containerAttrs : List (Html.Attribute msg)
+containerAttrs : List (Element.Attribute msg)
 containerAttrs =
-    [ style "position" "fixed"
-    , style "top" "0"
-    , style "right" "0"
-    , style "width" "100%"
-    , style "max-width" "300px"
-    , style "list-style-type" "none"
-    , style "padding" "0"
-    , style "margin" "0"
+    [ Element.centerX
+    , Element.pointer
+    , Element.width (Element.px 300)
     ]
 
 
-itemAttrs : List (Html.Attribute msg)
+itemAttrs : List (Element.Attribute msg)
 itemAttrs =
-    [ style "margin" "1em 1em 0 1em"
-    , style "max-height" "100px"
-    , style "transition" "max-height 0.6s, margin-top 0.6s"
-    ]
+    []
 
 
-transitionInAttrs : List (Html.Attribute msg)
+transitionInAttrs : List (Element.Attribute msg)
 transitionInAttrs =
-    [ class "animated bounceInRight"
-    ]
+    []
 
 
-transitionOutAttrs : List (Html.Attribute msg)
+transitionOutAttrs : List (Element.Attribute msg)
 transitionOutAttrs =
-    [ class "animated fadeOutRightBig"
-    , style "max-height" "0"
-    , style "margin-top" "0"
-    ]
+    []
 
 
 {-| Default theme view handling the three toast variants.
 -}
-view : Toast -> Html msg
+view : Toast -> Element msg
 view toast =
     case toast of
         Success title message ->
@@ -93,14 +83,14 @@ view toast =
             genericToast "toasty-error" title message
 
 
-genericToast : String -> String -> String -> Html msg
+genericToast : String -> String -> String -> Element msg
 genericToast variantClass title message =
-    div
-        [ class "toasty-container", class variantClass ]
-        [ h1 [ class "toasty-title" ] [ text title ]
+    row
+        []
+        [ el [ Element.Region.heading 1 ] (text title)
         , if String.isEmpty message then
             text ""
 
           else
-            p [ class "toasty-message" ] [ text message ]
+            paragraph [] [ text message ]
         ]

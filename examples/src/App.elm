@@ -3,8 +3,11 @@ module App exposing (main)
 import Browser
 import Browser.Events
 import Char
-import Html exposing (..)
-import Html.Attributes exposing (..)
+import Element exposing (..)
+import Element.Input as Input
+import Element.Region
+import Html
+import Html.Attributes
 import Html.Events exposing (..)
 import Json.Decode
 import Toasty
@@ -147,44 +150,49 @@ update msg model =
 ---- VIEW ----
 
 
-view : Model -> Html Msg
+view : Model -> Html.Html Msg
 view model =
-    div []
-        [ h1 [] [ text "Toasty demo" ]
-        , p []
-            [ text "Click for adding a "
-            , button [ class "btn success", type_ "button", onClick <| BtnClicked "success" ] [ text "success" ]
-            , text ", "
-            , button [ class "btn warning", type_ "button", onClick <| BtnClicked "warning" ] [ text "warning" ]
-            , text ", "
-            , button [ class "btn error", type_ "button", onClick <| BtnClicked "error" ] [ text "error" ]
-            , text ", "
-            , button [ class "btn", type_ "button", onClick <| BtnClicked "persistent" ] [ text "persistent" ]
-            , text " or "
-            , button [ class "btn", type_ "button", onClick <| BtnClicked "unique" ] [ text "unique" ]
-            , text " toast."
+    Element.layout []
+        (column
+            []
+            [ el [ Element.Region.heading 1 ] (text "Toasty demo")
+            , paragraph []
+                [ text "Click for adding a "
+                , Input.button [] { label = text "success", onPress = Just (BtnClicked "success") }
+                , text ", "
+                , Input.button [] { label = text "warning", onPress = Just (BtnClicked "warning") }
+                , text ", "
+                , Input.button [] { label = text "error", onPress = Just (BtnClicked "error") }
+                , text ", "
+                , Input.button [] { label = text "persistent", onPress = Just (BtnClicked "persistent") }
+                , text " or "
+                , Input.button [] { label = text "unique", onPress = Just (BtnClicked "unique") }
+                , text " toast."
+                ]
+            , paragraph []
+                [ text "Also you can press in your keyboard "
+                , el [] (text "[s]")
+                , text " for success, "
+                , el [] (text "[w]")
+                , text " for warning, "
+                , el [] (text "[e]")
+                , text " for error, "
+                , el [] (text "[p]")
+                , text " for persistent or "
+                , el [] (text "[u]")
+                , text " for unique toasts."
+                ]
+            , paragraph [] [ text "Click on any toast to remove it." ]
+            , paragraph [] [ text "This demo uses ", el [] (text "Toasty.Defaults for styling.") ]
+            , paragraph []
+                [ link []
+                    { url = "http://package.elm-lang.org/packages/pablen/toasty/latest"
+                    , label = text "Toasty at package.elm-lang.org"
+                    }
+                ]
+            , Toasty.view myConfig Toasty.Defaults.view ToastyMsg model.toasties
             ]
-        , p []
-            [ text "Also you can press in your keyboard "
-            , kbd [] [ text "[s]" ]
-            , text " for success, "
-            , kbd [] [ text "[w]" ]
-            , text " for warning, "
-            , kbd [] [ text "[e]" ]
-            , text " for error, "
-            , kbd [] [ text "[p]" ]
-            , text " for persistent or "
-            , kbd [] [ text "[u]" ]
-            , text " for unique toasts."
-            ]
-        , p [ class "help small" ] [ text "Click on any toast to remove it." ]
-        , p [] [ text "This demo uses ", code [] [ text "Toasty.Defaults" ], text " for styling." ]
-        , p []
-            [ a [ href "http://package.elm-lang.org/packages/pablen/toasty/latest" ]
-                [ text "Toasty at package.elm-lang.org" ]
-            ]
-        , Toasty.view myConfig Toasty.Defaults.view ToastyMsg model.toasties
-        ]
+        )
 
 
 

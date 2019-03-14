@@ -1,6 +1,11 @@
-# Toast notifications for Elm apps
+# Elm UI Toast notifications
 
-[![Build Status](https://travis-ci.org/pablen/toasty.svg?branch=master)](https://travis-ci.org/pablen/toasty)
+## Status: WIP
+TODO:
+- [x] Update to work with elm-ui
+- [ ] Update docs
+- [ ] Update example
+- [ ] Give better sensible defaults
 
 A configurable toast notification package for Elm apps following The Elm Architecture.
 
@@ -19,7 +24,7 @@ $ elm install pablen/toasty
 
 [See the Elm package for full usage docs](http://package.elm-lang.org/packages/pablen/toasty/latest).
 
-## License
+## Upstream License
 
 Copyright © 2018 Pablo Enrici
 
