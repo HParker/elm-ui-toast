@@ -92,8 +92,6 @@ transitionOut toast =
 config : Toasty.Config Msg Toast
 config =
     Toasty.Defaults.config
-        |> Toasty.transitionInFn transitionIn
-        |> Toasty.transitionOutFn transitionOut
 
 
 addToast : Toast -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )

@@ -1,7 +1,7 @@
 module Toasty exposing
     ( Stack, Msg
     , config, delay, transitionOutDuration, containerAttrs, Config
-    , view, update, addToast, addPersistentToast, hasToast, initialState
+    , view, update, addToast, addPersistentToast, initialState
     , listToStack, stackToList, transitionInFn, transitionOutFn
     )
 
@@ -123,7 +123,7 @@ classes.
 
 # Other functions
 
-@docs view, update, addToast, addPersistentToast, addToastIf, addToastIfUnique, hasToast, initialState
+@docs view, update, addToast, addPersistentToast, addToastIf, addToastIfUnique, initialState
 
 -}
 
@@ -151,7 +151,7 @@ to be as complex or simple as you want.
 
 -}
 type Stack a
-    = Stack (List ( Id, Status, a )) Seed
+    = Stack (List ( Id, Status, { a | animationState : Animation.State } )) Seed
 
 
 {-| How the toast will be removed.
@@ -172,7 +172,7 @@ type RemoveBehaviour
 
 -}
 type Msg a
-    = Add a
+    = Add { a | animationState : Animation.State }
     | Remove Id
     | TransitionOut Id
 
@@ -183,8 +183,8 @@ type Config msg a
     = Config
         { transitionOutDuration : Float
         , containerAttrs : List (Element.Attribute msg)
-        , transitionInFn : a -> a
-        , transitionOutFn : a -> a
+        , transitionInFn : { a | animationState : Animation.State } -> { a | animationState : Animation.State }
+        , transitionOutFn : { a | animationState : Animation.State } -> { a | animationState : Animation.State }
         , delay : Float
         }
 
@@ -196,6 +196,10 @@ type alias Id =
 type Status
     = Entered
     | Leaving
+
+
+type alias Toasted m a =
+    { m | toasties : Stack a }
 
 
 {-| Some basic configuration defaults: Toasts are visible for 5 seconds with
@@ -221,12 +225,12 @@ transitionOutDuration time (Config cfg) =
     Config { cfg | transitionOutDuration = time }
 
 
-transitionInFn : (a -> a) -> Config msg a -> Config msg a
+transitionInFn : ({ a | animationState : Animation.State } -> { a | animationState : Animation.State }) -> Config msg a -> Config msg a
 transitionInFn func (Config cfg) =
     Config { cfg | transitionInFn = func }
 
 
-transitionOutFn : (a -> a) -> Config msg a -> Config msg a
+transitionOutFn : ({ a | animationState : Animation.State } -> { a | animationState : Animation.State }) -> Config msg a -> Config msg a
 transitionOutFn func (Config cfg) =
     Config { cfg | transitionOutFn = func }
 
@@ -254,7 +258,7 @@ initialState =
     Stack [] (Random.initialSeed 0)
 
 
-stackToList : Stack a -> List ( Id, Status, a )
+stackToList : Stack a -> List ( Id, Status, { a | animationState : Animation.State } )
 stackToList toasties =
     let
         (Stack toasts seed) =
@@ -263,7 +267,7 @@ stackToList toasties =
     toasts
 
 
-listToStack : Stack a -> List ( Id, Status, a ) -> Stack a
+listToStack : Stack a -> List ( Id, Status, { a | animationState : Animation.State } ) -> Stack a
 listToStack (Stack stackedToasts seed) toasts =
     Stack toasts seed
 
@@ -281,7 +285,7 @@ toastExtractor ( id, status, toast ) =
                 Toasty.update Toasty.config ToastyMsg subMsg model
 
 -}
-update : Config msg a -> (Msg a -> msg) -> Msg a -> { m | toasties : Stack a } -> ( { m | toasties : Stack a }, Cmd msg )
+update : Config msg a -> (Msg a -> msg) -> Msg a -> Toasted m a -> ( Toasted m a, Cmd msg )
 update (Config cfg) tagger msg model =
     let
         (Stack toasts seed) =
@@ -293,6 +297,7 @@ update (Config cfg) tagger msg model =
 
         Remove targetId ->
             let
+                newStack : List ( Id, Status, { a | animationState : Animation.State } )
                 newStack =
                     List.filter (\( id, toast, status ) -> id /= targetId) toasts
             in
@@ -336,28 +341,31 @@ update function branches.
                 Toasty.update myConfig ToastyMsg subMsg model
 
 -}
-addToast : Config msg a -> (Msg a -> msg) -> a -> ( { m | toasties : Stack a }, Cmd msg ) -> ( { m | toasties : Stack a }, Cmd msg )
+addToast : Config msg a -> (Msg a -> msg) -> { a | animationState : Animation.State } -> ( Toasted m a, Cmd msg ) -> ( Toasted m a, Cmd msg )
 addToast =
     addToast_ Temporary
 
 
 {-| Similar to `addToast` but doesn't schedule the toast removal, so it will remain visible until clicked.
 -}
-addPersistentToast : Config msg a -> (Msg a -> msg) -> a -> ( { m | toasties : Stack a }, Cmd msg ) -> ( { m | toasties : Stack a }, Cmd msg )
+addPersistentToast : Config msg a -> (Msg a -> msg) -> { a | animationState : Animation.State } -> ( Toasted m a, Cmd msg ) -> ( Toasted m a, Cmd msg )
 addPersistentToast =
     addToast_ Persistent
 
 
 {-| Figure out whether a stack contains a specific toast. Similar to `List.member`.
 -}
-hasToast : a -> Stack a -> Bool
-hasToast toast (Stack toasts _) =
-    toasts
-        |> List.map (\( _, _, t ) -> t)
-        |> List.member toast
 
 
-addToast_ : RemoveBehaviour -> Config msg a -> (Msg a -> msg) -> a -> ( { m | toasties : Stack a }, Cmd msg ) -> ( { m | toasties : Stack a }, Cmd msg )
+
+-- hasToast : a -> Stack a -> Bool
+-- hasToast toast (Stack toasts _) =
+--     toasts
+--         |> List.map (\( _, _, t ) -> t)
+--         |> List.member toast
+
+
+addToast_ : RemoveBehaviour -> Config msg a -> (Msg a -> msg) -> { a | animationState : Animation.State } -> ( Toasted m a, Cmd msg ) -> ( Toasted m a, Cmd msg )
 addToast_ removeBehaviour (Config cfg) tagger toast ( model, cmd ) =
     let
         (Stack toasts seed) =
@@ -400,7 +408,7 @@ give it a function that knows how to render your toasts model.
             ]
 
 -}
-view : Config msg a -> (a -> Element msg) -> (Msg a -> msg) -> Stack a -> Element msg
+view : Config msg a -> ({ a | animationState : Animation.State } -> Element msg) -> (Msg a -> msg) -> Stack a -> Element msg
 view cfg toastView tagger (Stack toasts seed) =
     let
         (Config c) =
@@ -418,6 +426,6 @@ getNewId seed =
     Random.step (Random.int Random.minInt Random.maxInt) seed
 
 
-itemContainer : Config msg a -> (Msg a -> msg) -> ( Id, Status, a ) -> (a -> Element msg) -> ( String, Element msg )
+itemContainer : Config msg a -> (Msg a -> msg) -> ( Id, Status, { a | animationState : Animation.State } ) -> ({ a | animationState : Animation.State } -> Element msg) -> ( String, Element msg )
 itemContainer (Config cfg) tagger ( id, status, toast ) toastView =
     ( String.fromInt id, el [ onClick (tagger <| TransitionOut id) ] (toastView toast) )

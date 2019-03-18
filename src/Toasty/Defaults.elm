@@ -31,9 +31,37 @@ import Toasty
 config : Toasty.Config msg toast
 config =
     Toasty.config
-        |> Toasty.transitionOutDuration 700
+        |> Toasty.transitionOutDuration 600
         |> Toasty.containerAttrs containerAttrs
+        |> Toasty.transitionInFn transitionIn
+        |> Toasty.transitionOutFn transitionOut
         |> Toasty.delay 5000
+
+
+transitionIn : { toast | animationState : Animation.State } -> { toast | animationState : Animation.State }
+transitionIn toast =
+    { toast
+        | animationState =
+            Animation.interrupt
+                [ Animation.to
+                    [ Animation.opacity 1.0
+                    ]
+                ]
+                toast.animationState
+    }
+
+
+transitionOut : { toast | animationState : Animation.State } -> { toast | animationState : Animation.State }
+transitionOut toast =
+    { toast
+        | animationState =
+            Animation.interrupt
+                [ Animation.to
+                    [ Animation.opacity 0.0
+                    ]
+                ]
+                toast.animationState
+    }
 
 
 containerAttrs : List (Element.Attribute msg)
