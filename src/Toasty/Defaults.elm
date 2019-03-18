@@ -32,7 +32,6 @@ config : Toasty.Config msg toast
 config =
     Toasty.config
         |> Toasty.transitionOutDuration 700
-        |> Toasty.transitionOutAttrs transitionOutAttrs
         |> Toasty.containerAttrs containerAttrs
         |> Toasty.delay 5000
 
@@ -45,19 +44,3 @@ containerAttrs =
     , padding 10
     , spacing 10
     ]
-
-
-transitionInAttrs : List (Element.Attribute msg)
-transitionInAttrs =
-    []
-
-
-transitionOutAttrs : List (Element.Attribute msg)
-transitionOutAttrs =
-    List.map Element.htmlAttribute
-        (Animation.render
-            (Animation.style
-                [ Animation.opacity 0.0
-                ]
-            )
-        )

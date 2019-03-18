@@ -34,16 +34,18 @@ type Msg
     | Animate Int Animation.Msg
 
 
-type Toast
-    = Success ToastBody
-    | Warning ToastBody
-    | Error ToastBody
+type ToastType
+    = Success
+    | Warning
+    | Error
+    | Persistent
 
 
-type alias ToastBody =
+type alias Toast =
     { title : String
     , body : String
     , animationState : Animation.State
+    , toastType : ToastType
     }
 
 
@@ -63,58 +65,40 @@ init flags =
 
 transitionIn : Toast -> Toast
 transitionIn toast =
-    case toast of
-        Success toastBody ->
-            Success
-                { toastBody
-                    | animationState =
-                        Animation.interrupt
-                            [ Animation.to
-                                [ Animation.opacity 1.0
-                                ]
-                            ]
-                            toastBody.animationState
-                }
+    { toast
+        | animationState =
+            Animation.interrupt
+                [ Animation.to
+                    [ Animation.opacity 1.0
+                    ]
+                ]
+                toast.animationState
+    }
 
-        Warning toastBody ->
-            Warning
-                { toastBody
-                    | animationState =
-                        Animation.interrupt
-                            [ Animation.to
-                                [ Animation.opacity 1.0
-                                ]
-                            ]
-                            toastBody.animationState
-                }
 
-        Error toastBody ->
-            Error
-                { toastBody
-                    | animationState =
-                        Animation.interrupt
-                            [ Animation.to
-                                [ Animation.opacity 1.0
-                                ]
-                            ]
-                            toastBody.animationState
-                }
+transitionOut : Toast -> Toast
+transitionOut toast =
+    { toast
+        | animationState =
+            Animation.interrupt
+                [ Animation.to
+                    [ Animation.opacity 0.0
+                    ]
+                ]
+                toast.animationState
+    }
 
 
 config : Toasty.Config Msg Toast
 config =
     Toasty.Defaults.config
         |> Toasty.transitionInFn transitionIn
+        |> Toasty.transitionOutFn transitionOut
 
 
 addToast : Toast -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
 addToast toast ( model, cmd ) =
     Toasty.addToast config ToastyMsg toast ( model, cmd )
-
-
-addToastIfUnique : Toast -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
-addToastIfUnique toast ( model, cmd ) =
-    Toasty.addToastIfUnique config ToastyMsg toast ( model, cmd )
 
 
 addPersistentToast : Toast -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
@@ -136,66 +120,49 @@ update msg model =
                     , Cmd.none
                     )
                         |> addToast
-                            (Success
-                                { title = "Allright!"
-                                , body = "Thing successfully updated"
-                                , animationState =
-                                    Animation.style
-                                        [ Animation.opacity 0.0 ]
-                                }
-                            )
+                            { title = "Allright!"
+                            , body = "Thing successfully updated"
+                            , toastType = Success
+                            , animationState =
+                                Animation.style
+                                    [ Animation.opacity 0.0 ]
+                            }
 
                 "w" ->
                     ( model
                     , Cmd.none
                     )
                         |> addToast
-                            (Warning
-                                { title = "Warning!"
-                                , body = "Please check this and that."
-                                , animationState =
-                                    Animation.style [ Animation.opacity 0.0 ]
-                                }
-                            )
+                            { title = "Warning!"
+                            , body = "Please check this and that."
+                            , toastType = Warning
+                            , animationState =
+                                Animation.style [ Animation.opacity 0.0 ]
+                            }
 
                 "e" ->
                     ( model
                     , Cmd.none
                     )
                         |> addToast
-                            (Error
-                                { title = "Error"
-                                , body = "Sorry, something went wrong..."
-                                , animationState =
-                                    Animation.style [ Animation.opacity 0.0 ]
-                                }
-                            )
+                            { title = "Error"
+                            , body = "Sorry, something went wrong..."
+                            , toastType = Error
+                            , animationState =
+                                Animation.style [ Animation.opacity 0.0 ]
+                            }
 
                 "p" ->
                     ( model
                     , Cmd.none
                     )
                         |> addPersistentToast
-                            (Success
-                                { title = "Persistent Toast"
-                                , body = "This toast will remain visible until clicked."
-                                , animationState =
-                                    Animation.style [ Animation.opacity 0.0 ]
-                                }
-                            )
-
-                "u" ->
-                    ( model
-                    , Cmd.none
-                    )
-                        |> addToastIfUnique
-                            (Success
-                                { title = "Unique toast"
-                                , body = "Avoid repeated notifications"
-                                , animationState =
-                                    Animation.style [ Animation.opacity 0.0 ]
-                                }
-                            )
+                            { title = "Persistent Toast"
+                            , body = "This toast will remain visible until clicked."
+                            , toastType = Persistent
+                            , animationState =
+                                Animation.style [ Animation.opacity 0.0 ]
+                            }
 
                 _ ->
                     ( model
@@ -207,70 +174,52 @@ update msg model =
             , Cmd.none
             )
                 |> addToast
-                    (Success
-                        { title = "Allright!"
-                        , body = "Thing successfully updated"
-                        , animationState =
-                            Animation.style
-                                [ Animation.opacity 0.0 ]
-                        }
-                    )
+                    { title = "Allright!"
+                    , body = "Thing successfully updated"
+                    , toastType = Success
+                    , animationState =
+                        Animation.style
+                            [ Animation.opacity 0.0 ]
+                    }
 
         BtnClicked "warning" ->
             ( model
             , Cmd.none
             )
                 |> addToast
-                    (Warning
-                        { title = "Warning!"
-                        , body = "Please check this and that."
-                        , animationState =
-                            Animation.style
-                                [ Animation.opacity 0.0 ]
-                        }
-                    )
+                    { title = "Warning!"
+                    , body = "Please check this and that."
+                    , toastType = Warning
+                    , animationState =
+                        Animation.style
+                            [ Animation.opacity 0.0 ]
+                    }
 
         BtnClicked "error" ->
             ( model
             , Cmd.none
             )
                 |> addToast
-                    (Error
-                        { title = "Error"
-                        , body = "Sorry, something went wrong..."
-                        , animationState =
-                            Animation.style
-                                [ Animation.opacity 0.0 ]
-                        }
-                    )
+                    { title = "Error"
+                    , body = "Sorry, something went wrong..."
+                    , toastType = Error
+                    , animationState =
+                        Animation.style
+                            [ Animation.opacity 0.0 ]
+                    }
 
         BtnClicked "persistent" ->
             ( model
             , Cmd.none
             )
                 |> addPersistentToast
-                    (Success
-                        { title = "Persistent Toast"
-                        , body = "This toast will remain visible until clicked."
-                        , animationState =
-                            Animation.style
-                                [ Animation.opacity 0.0 ]
-                        }
-                    )
-
-        BtnClicked "unique" ->
-            ( model
-            , Cmd.none
-            )
-                |> addToastIfUnique
-                    (Success
-                        { title = "Unique toast"
-                        , body = "Avoid repeated notifications"
-                        , animationState =
-                            Animation.style
-                                [ Animation.opacity 0.0 ]
-                        }
-                    )
+                    { title = "Persistent Toast"
+                    , body = "This toast will remain visible until clicked."
+                    , toastType = Persistent
+                    , animationState =
+                        Animation.style
+                            [ Animation.opacity 0.0 ]
+                    }
 
         BtnClicked _ ->
             ( model
@@ -280,7 +229,8 @@ update msg model =
         ToastyMsg subMsg ->
             Toasty.update config ToastyMsg subMsg model
 
-        Animate targetId animMsg ->
+        Animate targetIndex animMsg ->
+            -- TODO this is the new worst part of the code... FIXME
             let
                 toasts =
                     Toasty.stackToList model.toasties
@@ -288,8 +238,8 @@ update msg model =
                 newToasts =
                     List.indexedMap
                         (\index ( id, status, toast ) ->
-                            if index == targetId then
-                                ( id, status, updateToast animMsg toast )
+                            if index == targetIndex then
+                                Debug.log "updating toast with" ( id, status, updateToast animMsg toast )
 
                             else
                                 ( id, status, toast )
@@ -301,23 +251,10 @@ update msg model =
 
 updateToast : Animation.Msg -> Toast -> Toast
 updateToast animMsg toast =
-    case toast of
-        Success toastBody ->
-            Success { toastBody | animationState = Animation.update animMsg toastBody.animationState }
-
-        Warning toastBody ->
-            Warning { toastBody | animationState = Animation.update animMsg toastBody.animationState }
-
-        Error toastBody ->
-            Error { toastBody | animationState = Animation.update animMsg toastBody.animationState }
+    { toast | animationState = Animation.update animMsg toast.animationState }
 
 
 
--- ( { model
---     | toastAnimation = Animation.update animMsg model.toastAnimation
---   }
--- , Cmd.none
--- )
 ---- VIEW ----
 
 
@@ -350,41 +287,51 @@ pink =
 -}
 viewToast : Toast -> Element msg
 viewToast toast =
-    case toast of
-        Success toastBody ->
+    case toast.toastType of
+        Success ->
             genericToast
                 ([ Border.rounded 3, Background.color green, padding 10 ]
                     ++ List.map
                         Element.htmlAttribute
                         (Animation.render
-                            toastBody.animationState
+                            toast.animationState
                         )
                 )
-                toastBody
+                toast
 
-        Warning toastBody ->
+        Warning ->
             genericToast
                 ([ Border.rounded 3, Background.color orange, padding 10 ]
                     ++ List.map
                         Element.htmlAttribute
                         (Animation.render
-                            toastBody.animationState
+                            toast.animationState
                         )
                 )
-                toastBody
+                toast
 
-        Error toastBody ->
+        Error ->
             genericToast
                 ([ Border.rounded 3, Background.color red, padding 10 ]
                     ++ List.map Element.htmlAttribute
                         (Animation.render
-                            toastBody.animationState
+                            toast.animationState
                         )
                 )
-                toastBody
+                toast
+
+        Persistent ->
+            genericToast
+                ([ Border.rounded 3, Background.color purple, padding 10 ]
+                    ++ List.map Element.htmlAttribute
+                        (Animation.render
+                            toast.animationState
+                        )
+                )
+                toast
 
 
-genericToast : List (Element.Attribute msg) -> ToastBody -> Element msg
+genericToast : List (Element.Attribute msg) -> Toast -> Element msg
 genericToast itemAttributes { title, body } =
     column itemAttributes
         [ el [ Element.Region.heading 1 ] (text title)
@@ -421,11 +368,6 @@ view model =
                 , Input.button
                     [ Border.rounded 3, Background.color purple, padding 3 ]
                     { label = text "persistent", onPress = Just (BtnClicked "persistent") }
-                , text " or "
-                , Input.button
-                    [ Border.rounded 3, Background.color pink, padding 3 ]
-                    { label = text "unique", onPress = Just (BtnClicked "unique") }
-                , text " toast."
                 ]
             , paragraph []
                 [ text "Also you can press in your keyboard "
@@ -444,14 +386,9 @@ view model =
                 , el
                     [ Font.family [ Font.monospace ], Font.bold ]
                     (text "[p]")
-                , text " for persistent or "
-                , el
-                    [ Font.family [ Font.monospace ], Font.bold ]
-                    (text "[u]")
-                , text " for unique toasts."
+                , text " for persistent."
                 ]
             , paragraph [] [ text "Click on any toast to remove it." ]
-            , paragraph [] [ text "This demo uses ", el [] (text "Toasty.Defaults for styling.") ]
             , paragraph []
                 [ link []
                     { url = "http://package.elm-lang.org/packages/pablen/toasty/latest"
@@ -488,20 +425,7 @@ subscriptions model =
 
 animationSubscriber : Int -> ( Int, a, Toast ) -> Sub Msg
 animationSubscriber index ( id, _, toast ) =
-    Animation.subscription (Animate index) [ stateGrabber toast ]
-
-
-stateGrabber : Toast -> Animation.State
-stateGrabber toast =
-    case toast of
-        Success toastBody ->
-            toastBody.animationState
-
-        Warning toastBody ->
-            toastBody.animationState
-
-        Error toastBody ->
-            toastBody.animationState
+    Animation.subscription (Animate index) [ toast.animationState ]
 
 
 

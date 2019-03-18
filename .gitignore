@@ -1,6 +1,9 @@
 # Distribution
 dist/
 
+# Build artifacts
+examples/index.html
+
 # elm-package generated files
 elm-stuff
 

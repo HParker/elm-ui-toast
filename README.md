@@ -5,7 +5,9 @@ TODO:
 - [x] Update to work with elm-ui
 - [ ] Update docs
 - [ ] Update example
-- [ ] Give better sensible defaults
+- [ ] Give defaults using animations
+- [ ] Remove stack-to-list and list-to-stack
+
 
 A configurable toast notification package for Elm apps following The Elm Architecture.
 
