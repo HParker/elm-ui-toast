@@ -141,7 +141,7 @@ update msg model =
                                 , body = "Thing successfully updated"
                                 , animationState =
                                     Animation.style
-                                        [ Animation.opacity 1.0 ]
+                                        [ Animation.opacity 0.0 ]
                                 }
                             )
 
@@ -153,7 +153,8 @@ update msg model =
                             (Warning
                                 { title = "Warning!"
                                 , body = "Please check this and that."
-                                , animationState = Animation.style [ Animation.opacity 1.0 ]
+                                , animationState =
+                                    Animation.style [ Animation.opacity 0.0 ]
                                 }
                             )
 
@@ -165,7 +166,8 @@ update msg model =
                             (Error
                                 { title = "Error"
                                 , body = "Sorry, something went wrong..."
-                                , animationState = Animation.style [ Animation.opacity 1.0 ]
+                                , animationState =
+                                    Animation.style [ Animation.opacity 0.0 ]
                                 }
                             )
 
@@ -177,7 +179,8 @@ update msg model =
                             (Success
                                 { title = "Persistent Toast"
                                 , body = "This toast will remain visible until clicked."
-                                , animationState = Animation.style [ Animation.opacity 1.0 ]
+                                , animationState =
+                                    Animation.style [ Animation.opacity 0.0 ]
                                 }
                             )
 
@@ -189,7 +192,8 @@ update msg model =
                             (Success
                                 { title = "Unique toast"
                                 , body = "Avoid repeated notifications"
-                                , animationState = Animation.style [ Animation.opacity 1.0 ]
+                                , animationState =
+                                    Animation.style [ Animation.opacity 0.0 ]
                                 }
                             )
 
@@ -234,7 +238,9 @@ update msg model =
                     (Error
                         { title = "Error"
                         , body = "Sorry, something went wrong..."
-                        , animationState = Animation.style [ Animation.opacity 0.0 ]
+                        , animationState =
+                            Animation.style
+                                [ Animation.opacity 0.0 ]
                         }
                     )
 
@@ -246,7 +252,9 @@ update msg model =
                     (Success
                         { title = "Persistent Toast"
                         , body = "This toast will remain visible until clicked."
-                        , animationState = Animation.style [ Animation.opacity 0.0 ]
+                        , animationState =
+                            Animation.style
+                                [ Animation.opacity 0.0 ]
                         }
                     )
 
@@ -258,7 +266,9 @@ update msg model =
                     (Success
                         { title = "Unique toast"
                         , body = "Avoid repeated notifications"
-                        , animationState = Animation.style [ Animation.opacity 0.0 ]
+                        , animationState =
+                            Animation.style
+                                [ Animation.opacity 0.0 ]
                         }
                     )
 

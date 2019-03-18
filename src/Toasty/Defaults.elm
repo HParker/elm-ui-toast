@@ -33,7 +33,6 @@ config =
     Toasty.config
         |> Toasty.transitionOutDuration 700
         |> Toasty.transitionOutAttrs transitionOutAttrs
-        |> Toasty.transitionInAttrs transitionInAttrs
         |> Toasty.containerAttrs containerAttrs
         |> Toasty.delay 5000
 
