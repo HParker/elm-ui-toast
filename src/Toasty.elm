@@ -1,7 +1,8 @@
 module Toasty exposing
     ( Stack, Msg
-    , config, delay, transitionOutDuration, containerAttrs, itemAttrs, transitionInAttrs, transitionOutAttrs, Config
+    , config, delay, transitionOutDuration, containerAttrs, transitionInAttrs, transitionOutAttrs, Config
     , view, update, addToast, addPersistentToast, addToastIf, addToastIfUnique, hasToast, initialState
+    , listToStack, stackToList, transitionInFn
     )
 
 {-| This package lets you easily show customizable toast notifications in your
@@ -117,7 +118,7 @@ classes.
         , style "top" "0"
         ]
 
-@docs config, delay, transitionOutDuration, containerAttrs, itemAttrs, transitionInAttrs, transitionOutAttrs, Config
+@docs config, delay, transitionOutDuration, containerAttrs, transitionInAttrs, transitionOutAttrs, Config
 
 
 # Other functions
@@ -126,13 +127,13 @@ classes.
 
 -}
 
-import Process
-import Random exposing (Seed)
-import Task
-
+import Animation
 import Element exposing (..)
 import Element.Events exposing (onClick)
 import Element.Keyed
+import Process
+import Random exposing (Seed)
+import Task
 
 
 {-| Represents the stack of current toasts notifications. You can model a toast
@@ -141,7 +142,6 @@ to be as complex or simple as you want.
     type alias Model =
         { toasties : Toasty.Stack MyToast
         }
-
 
     -- Defines a toast model that has three different variants
     type MyToast
@@ -179,13 +179,13 @@ type Msg a
 
 {-| The base configuration type.
 -}
-type Config msg
+type Config msg a
     = Config
         { transitionOutDuration : Float
         , transitionOutAttrs : List (Element.Attribute msg)
         , transitionInAttrs : List (Element.Attribute msg)
         , containerAttrs : List (Element.Attribute msg)
-        , itemAttrs : List (Element.Attribute msg)
+        , transitionInFn : a -> a
         , delay : Float
         }
 
@@ -202,14 +202,14 @@ type Status
 {-| Some basic configuration defaults: Toasts are visible for 5 seconds with
 no animations or special styling.
 -}
-config : Config msg
+config : Config msg a
 config =
     Config
         { transitionOutDuration = 0
         , transitionOutAttrs = []
         , transitionInAttrs = []
         , containerAttrs = []
-        , itemAttrs = []
+        , transitionInFn = \a -> a
         , delay = 5000
         }
 
@@ -218,21 +218,26 @@ config =
 begins and before actually removing the toast node from the DOM. This lets you
 author fancy animations when a toast is removed.
 -}
-transitionOutDuration : Float -> Config msg -> Config msg
+transitionOutDuration : Float -> Config msg a -> Config msg a
 transitionOutDuration time (Config cfg) =
     Config { cfg | transitionOutDuration = time }
 
 
+transitionInFn : (a -> a) -> Config msg a -> Config msg a
+transitionInFn func (Config cfg) =
+    Config { cfg | transitionInFn = func }
+
+
 {-| Lets you set the HTML attributes to add to the toast container when transitioning in.
 -}
-transitionInAttrs : List (Element.Attribute msg) -> Config msg -> Config msg
+transitionInAttrs : List (Element.Attribute msg) -> Config msg a -> Config msg a
 transitionInAttrs attrs (Config cfg) =
     Config { cfg | transitionInAttrs = attrs }
 
 
 {-| Lets you set the HTML attributes to add to the toast container when transitioning out.
 -}
-transitionOutAttrs : List (Element.Attribute msg) -> Config msg -> Config msg
+transitionOutAttrs : List (Element.Attribute msg) -> Config msg a -> Config msg a
 transitionOutAttrs attrs (Config cfg) =
     Config { cfg | transitionOutAttrs = attrs }
 
@@ -240,23 +245,15 @@ transitionOutAttrs attrs (Config cfg) =
 {-| Lets you set the HTML attributes to add to the toasts stack container. This will help
 you style and position the toast stack however you like by adding classes or inline styles.
 -}
-containerAttrs : List (Element.Attribute msg) -> Config msg -> Config msg
+containerAttrs : List (Element.Attribute msg) -> Config msg a -> Config msg a
 containerAttrs attrs (Config cfg) =
     Config { cfg | containerAttrs = attrs }
-
-
-{-| Lets you set the HTML attributes to add to each toast container. This will help
-you style and arrange the toasts however you like by adding classes or inline styles.
--}
-itemAttrs : List (Element.Attribute msg) -> Config msg -> Config msg
-itemAttrs attrs (Config cfg) =
-    Config { cfg | itemAttrs = attrs }
 
 
 {-| Changes the amount of time (in milliseconds) the toast will be visible.
 After this time, the transition out begins.
 -}
-delay : Float -> Config msg -> Config msg
+delay : Float -> Config msg a -> Config msg a
 delay time (Config cfg) =
     Config { cfg | delay = time }
 
@@ -268,6 +265,25 @@ initialState =
     Stack [] (Random.initialSeed 0)
 
 
+stackToList : Stack a -> List ( Id, Status, a )
+stackToList toasties =
+    let
+        (Stack toasts seed) =
+            toasties
+    in
+    toasts
+
+
+listToStack : Stack a -> List ( Id, Status, a ) -> Stack a
+listToStack (Stack stackedToasts seed) toasts =
+    Stack toasts seed
+
+
+toastExtractor : ( Id, Status, a ) -> a
+toastExtractor ( id, status, toast ) =
+    toast
+
+
 {-| Handles the internal messages. You need to wire it to your app update function
 
     update msg model =
@@ -276,7 +292,7 @@ initialState =
                 Toasty.update Toasty.config ToastyMsg subMsg model
 
 -}
-update : Config msg -> (Msg a -> msg) -> Msg a -> { m | toasties : Stack a } -> ( { m | toasties : Stack a }, Cmd msg )
+update : Config msg a -> (Msg a -> msg) -> Msg a -> { m | toasties : Stack a } -> ( { m | toasties : Stack a }, Cmd msg )
 update (Config cfg) tagger msg model =
     let
         (Stack toasts seed) =
@@ -291,7 +307,9 @@ update (Config cfg) tagger msg model =
                 newStack =
                     List.filter (\( id, toast, status ) -> id /= targetId) toasts
             in
-            ( { model | toasties = Stack newStack seed }
+            ( { model
+                | toasties = Stack newStack seed
+              }
             , Cmd.none
             )
 
@@ -302,13 +320,16 @@ update (Config cfg) tagger msg model =
                         (\( id, status, toast ) ->
                             if id == targetId then
                                 ( id, Leaving, toast )
+                                -- TODO cfg.transitionOutFn
 
                             else
                                 ( id, status, toast )
                         )
                         toasts
             in
-            ( { model | toasties = Stack newStack seed }
+            ( { model
+                | toasties = Stack newStack seed
+              }
             , Task.perform (\_ -> tagger (Remove targetId)) (Process.sleep <| cfg.transitionOutDuration)
             )
 
@@ -327,14 +348,14 @@ update function branches.
                 Toasty.update myConfig ToastyMsg subMsg model
 
 -}
-addToast : Config msg -> (Msg a -> msg) -> a -> ( { m | toasties : Stack a }, Cmd msg ) -> ( { m | toasties : Stack a }, Cmd msg )
+addToast : Config msg a -> (Msg a -> msg) -> a -> ( { m | toasties : Stack a }, Cmd msg ) -> ( { m | toasties : Stack a }, Cmd msg )
 addToast =
     addToast_ Temporary
 
 
 {-| Similar to `addToast` but doesn't schedule the toast removal, so it will remain visible until clicked.
 -}
-addPersistentToast : Config msg -> (Msg a -> msg) -> a -> ( { m | toasties : Stack a }, Cmd msg ) -> ( { m | toasties : Stack a }, Cmd msg )
+addPersistentToast : Config msg a -> (Msg a -> msg) -> a -> ( { m | toasties : Stack a }, Cmd msg ) -> ( { m | toasties : Stack a }, Cmd msg )
 addPersistentToast =
     addToast_ Persistent
 
@@ -342,7 +363,7 @@ addPersistentToast =
 {-| Similar to `addToast` but also receives a condition parameter `List toast -> Bool`
 so that the toast will only be added if the condition returns `True`.
 -}
-addToastIf : Config msg -> (Msg a -> msg) -> (List a -> Bool) -> a -> ( { m | toasties : Stack a }, Cmd msg ) -> ( { m | toasties : Stack a }, Cmd msg )
+addToastIf : Config msg a -> (Msg a -> msg) -> (List a -> Bool) -> a -> ( { m | toasties : Stack a }, Cmd msg ) -> ( { m | toasties : Stack a }, Cmd msg )
 addToastIf cfg tagger condition toast ( model, cmd ) =
     let
         (Stack toasts seed) =
@@ -366,7 +387,7 @@ addToastIf cfg tagger condition toast ( model, cmd ) =
 present in the stack. This is a convenience `addToastIf` function using
 `not << List.member toast` as a `condition` parameter.
 -}
-addToastIfUnique : Config msg -> (Msg a -> msg) -> a -> ( { m | toasties : Stack a }, Cmd msg ) -> ( { m | toasties : Stack a }, Cmd msg )
+addToastIfUnique : Config msg a -> (Msg a -> msg) -> a -> ( { m | toasties : Stack a }, Cmd msg ) -> ( { m | toasties : Stack a }, Cmd msg )
 addToastIfUnique cfg tagger toast ( model, cmd ) =
     addToastIf cfg tagger (not << List.member toast) toast ( model, cmd )
 
@@ -380,7 +401,7 @@ hasToast toast (Stack toasts _) =
         |> List.member toast
 
 
-addToast_ : RemoveBehaviour -> Config msg -> (Msg a -> msg) -> a -> ( { m | toasties : Stack a }, Cmd msg ) -> ( { m | toasties : Stack a }, Cmd msg )
+addToast_ : RemoveBehaviour -> Config msg a -> (Msg a -> msg) -> a -> ( { m | toasties : Stack a }, Cmd msg ) -> ( { m | toasties : Stack a }, Cmd msg )
 addToast_ removeBehaviour (Config cfg) tagger toast ( model, cmd ) =
     let
         (Stack toasts seed) =
@@ -397,7 +418,18 @@ addToast_ removeBehaviour (Config cfg) tagger toast ( model, cmd ) =
                 Persistent ->
                     Cmd.none
     in
-    ( { model | toasties = Stack (toasts ++ [ ( newId, Entered, toast ) ]) newSeed }
+    ( { model
+        | toasties =
+            Stack
+                (toasts
+                    ++ [ ( newId
+                         , Entered
+                         , cfg.transitionInFn toast
+                         )
+                       ]
+                )
+                newSeed
+      }
     , Cmd.batch [ cmd, task ]
     )
 
@@ -412,7 +444,7 @@ give it a function that knows how to render your toasts model.
             ]
 
 -}
-view : Config msg -> (a -> Element msg) -> (Msg a -> msg) -> Stack a -> Element msg
+view : Config msg a -> (a -> Element msg) -> (Msg a -> msg) -> Stack a -> Element msg
 view cfg toastView tagger (Stack toasts seed) =
     let
         (Config c) =
@@ -424,12 +456,13 @@ view cfg toastView tagger (Stack toasts seed) =
     else
         Element.Keyed.column c.containerAttrs <| List.map (\toast -> itemContainer cfg tagger toast toastView) toasts
 
+
 getNewId : Seed -> ( Id, Seed )
 getNewId seed =
     Random.step (Random.int Random.minInt Random.maxInt) seed
 
 
-itemContainer : Config msg -> (Msg a -> msg) -> ( Id, Status, a ) -> (a -> Element msg) -> ( String, Element msg )
+itemContainer : Config msg a -> (Msg a -> msg) -> ( Id, Status, a ) -> (a -> Element msg) -> ( String, Element msg )
 itemContainer (Config cfg) tagger ( id, status, toast ) toastView =
     let
         attrs =
@@ -440,4 +473,4 @@ itemContainer (Config cfg) tagger ( id, status, toast ) toastView =
                 Leaving ->
                     cfg.transitionOutAttrs
     in
-    ( String.fromInt id, el (cfg.itemAttrs ++ attrs ++ [ onClick (tagger <| TransitionOut id) ]) (toastView toast) )
+    ( String.fromInt id, el (attrs ++ [ onClick (tagger <| TransitionOut id) ]) (toastView toast) )

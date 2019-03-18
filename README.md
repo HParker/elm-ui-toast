@@ -9,23 +9,22 @@ TODO:
 
 A configurable toast notification package for Elm apps following The Elm Architecture.
 
-See a [demo](http://pablen-toasty-demo.surge.sh/) using `Toasty.Defaults` styling.
 
-
-## Installation
+## Installation TODO
 
 From your top-level directory - the one with `elm.json` in - call:
 
 ```
-$ elm install pablen/toasty
+$ elm install hparker/elm-ui-toast
 ```
 
 ## Documentation
 
-[See the Elm package for full usage docs](http://package.elm-lang.org/packages/pablen/toasty/latest).
+TODO
 
 ## Upstream License
 
 Copyright © 2018 Pablo Enrici
+Copyright © 2019 Adam Hess
 
 Distributed under the BSD-3-Clause license.
