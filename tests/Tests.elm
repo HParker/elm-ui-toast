@@ -6,6 +6,6 @@ import Test exposing (..)
 
 all : Test
 all =
-    describe "Toasty Test Suite"
+    describe "Toast Test Suite"
         [ Config.all
         ]

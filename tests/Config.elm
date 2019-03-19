@@ -6,7 +6,7 @@ import Html.Attributes exposing (..)
 import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector
-import Toasty
+import Toast
 
 
 type alias Toast =
@@ -14,12 +14,12 @@ type alias Toast =
 
 
 type Msg
-    = Tagger (Toasty.Msg Toast)
+    = Tagger (Toast.Msg Toast)
 
 
-initialModel : { toasties : Toasty.Stack Toast }
+initialModel : { toasties : Toast.Stack Toast }
 initialModel =
-    { toasties = Toasty.initialState }
+    { toasties = Toast.initialState }
 
 
 renderToast : Toast -> Html Msg
@@ -34,7 +34,7 @@ all =
             \() ->
                 let
                     view =
-                        Toasty.view Toasty.config renderToast Tagger initialModel.toasties
+                        Toast.view Toast.config renderToast Tagger initialModel.toasties
                 in
                 Expect.equal view (text "")
         , test "Renders list of toasts after adding toasts" <|
@@ -44,11 +44,11 @@ all =
                         ( initialModel
                         , Cmd.none
                         )
-                            |> Toasty.addToast Toasty.config Tagger "foo"
-                            |> Toasty.addToast Toasty.config Tagger "bar"
+                            |> Toast.addToast Toast.config Tagger "foo"
+                            |> Toast.addToast Toast.config Tagger "bar"
 
                     view =
-                        Toasty.view Toasty.config renderToast Tagger model.toasties
+                        Toast.view Toast.config renderToast Tagger model.toasties
                 in
                 view
                     |> Query.fromHtml
@@ -64,14 +64,14 @@ all =
                         ( initialModel
                         , Cmd.none
                         )
-                            |> Toasty.addToast Toasty.config Tagger "foo"
+                            |> Toast.addToast Toast.config Tagger "foo"
 
                     myConfig =
-                        Toasty.config
-                            |> Toasty.containerAttrs [ class "myClass", style "color" "red" ]
+                        Toast.config
+                            |> Toast.containerAttrs [ class "myClass", style "color" "red" ]
 
                     view =
-                        Toasty.view myConfig renderToast Tagger model.toasties
+                        Toast.view myConfig renderToast Tagger model.toasties
                 in
                 -- elm-test can't test style attributess ATM https://github.com/eeue56/elm-html-test/issues/3
                 view
@@ -84,14 +84,14 @@ all =
                         ( initialModel
                         , Cmd.none
                         )
-                            |> Toasty.addToast Toasty.config Tagger "foo"
+                            |> Toast.addToast Toast.config Tagger "foo"
 
                     myConfig =
-                        Toasty.config
-                            |> Toasty.itemAttrs [ class "itemClass", style "color" "blue" ]
+                        Toast.config
+                            |> Toast.itemAttrs [ class "itemClass", style "color" "blue" ]
 
                     view =
-                        Toasty.view myConfig renderToast Tagger model.toasties
+                        Toast.view myConfig renderToast Tagger model.toasties
                 in
                 -- elm-test can't test style attributess ATM https://github.com/eeue56/elm-html-test/issues/3
                 view
@@ -105,14 +105,14 @@ all =
                         ( initialModel
                         , Cmd.none
                         )
-                            |> Toasty.addToast Toasty.config Tagger "foo"
+                            |> Toast.addToast Toast.config Tagger "foo"
 
                     myConfig =
-                        Toasty.config
-                            |> Toasty.transitionInAttrs [ class "fadeIn", style "color" "green" ]
+                        Toast.config
+                            |> Toast.transitionInAttrs [ class "fadeIn", style "color" "green" ]
 
                     view =
-                        Toasty.view myConfig renderToast Tagger model.toasties
+                        Toast.view myConfig renderToast Tagger model.toasties
                 in
                 -- elm-test can't test style attributess ATM https://github.com/eeue56/elm-html-test/issues/3
                 view

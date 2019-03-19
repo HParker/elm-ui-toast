@@ -1,5 +1,5 @@
 require('./main.css');
-require('../../src/Toasty/Defaults.css');
+require('../../src/Toast/Defaults.css');
 
 var myApp = require('./App.elm');
 

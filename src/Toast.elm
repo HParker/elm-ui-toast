@@ -1,8 +1,8 @@
-module Toasty exposing
+module Toast exposing
     ( Stack, Msg
     , config, delay, transitionOutDuration, containerAttrs, Config
     , view, update, addToast, addPersistentToast, initialState
-    , listToStack, stackToList, transitionInFn, transitionOutFn
+    , subscription, transitionInFn, transitionOutFn
     )
 
 {-| This package lets you easily show customizable toast notifications in your
@@ -12,7 +12,7 @@ through this library `addToast` function.
 
 While this package lets you configure each part of the rendering and behaviour
 of the notification stack, you can use a nice default theme configuration provided
-in `Toasty.Defaults`. See a [demo using default styling](http://pablen-toasty-demo.surge.sh/).
+in `Toast.Defaults`.
 
 
 ## Example
@@ -26,7 +26,7 @@ First you add the toast stack to your model, wrapping the toast model you want i
 You must do it in a field called `toasties`:
 
     type alias Model =
-        { toasties : Toasty.Stack String }
+        { toasties : Toast.Stack String }
 
 Note that in this example we are modelling our toasts as a simple `String`,
 but we can model our toasts however we need.
@@ -35,28 +35,28 @@ Add the stack initial state in your `init` function:
 
     init : ( Model, Cmd Msg )
     init =
-        ( { toasties = Toasty.initialState }, Cmd.none )
+        ( { toasties = Toast.initialState }, Cmd.none )
 
 Then add a message that will handle toasts messages:
 
     type alias Msg =
-        ToastyMsg (Toasty.Msg String)
+        ToastMsg (Toast.Msg String)
 
 You can use the default configuration as-is or tweak it to your needs by piping configuration helpers:
 
-    myConfig : Toasty.Config msg
+    myConfig : Toast.Config msg
     myConfig =
-        Toasty.config
-            |> Toasty.transitionOutDuration 100
-            |> Toasty.delay 8000
+        Toast.config
+            |> Toast.transitionOutDuration 100
+            |> Toast.delay 8000
 
 Handle the toasts message in your app update function using the library `update`
 function:
 
     update msg model =
         case msg of
-            ToastyMsg subMsg ->
-                Toasty.update myConfig ToastyMsg subMsg model
+            ToastMsg subMsg ->
+                Toast.update myConfig ToastMsg subMsg model
 
 As a last step, render the toast stack in you `view` function. You will need to
 provide a special view function that knows how to render your toast model:
@@ -64,8 +64,8 @@ provide a special view function that knows how to render your toast model:
     view : Model -> Html Msg
     view model =
         div []
-            [ h1 [] [ text "Toasty example" ]
-            , Toasty.view myConfig renderToast ToastyMsg model.toasties
+            [ h1 [] [ text "Toast example" ]
+            , Toast.view myConfig renderToast ToastMsg model.toasties
             ]
 
     renderToast : String -> Html Msg
@@ -84,7 +84,7 @@ configuration, tag and toast.
             case msg of
                 SomeAppMsg ->
                     ( newModel, Cmd.none )
-                        |> Toasty.addToast myConfig ToastyMsg "Entity successfully created!"
+                        |> Toast.addToast myConfig ToastMsg "Entity successfully created!"
 
 That's all!
 
@@ -104,12 +104,12 @@ Note that as you can set container and items HTML attributes the library remains
 agnostic about how to style your toasts, enabling you to use inline styles or
 classes.
 
-    myConfig : Toasty.Config msg
+    myConfig : Toast.Config msg
     myConfig =
-        Toasty.config
-            |> Toasty.transitionOutDuration 700
-            |> Toasty.delay 8000
-            |> Toasty.containerAttrs containerAttrs
+        Toast.config
+            |> Toast.transitionOutDuration 700
+            |> Toast.delay 8000
+            |> Toast.containerAttrs containerAttrs
 
     containerAttrs =
         [ style "max-width" "300px"
@@ -140,7 +140,7 @@ import Task
 to be as complex or simple as you want.
 
     type alias Model =
-        { toasties : Toasty.Stack MyToast
+        { toasties : Toast.Stack MyToast
         }
 
     -- Defines a toast model that has three different variants
@@ -168,13 +168,14 @@ type RemoveBehaviour
 {-| The internal message type used by the library. You need to tag and add it to your app messages.
 
     type Msg
-        = ToastyMsg (Toasty.Msg MyToast)
+        = ToastMsg (Toast.Msg MyToast)
 
 -}
 type Msg a
     = Add { a | animationState : Animation.State }
     | Remove Id
     | TransitionOut Id
+    | Animate Int Animation.Msg
 
 
 {-| The base configuration type.
@@ -258,20 +259,6 @@ initialState =
     Stack [] (Random.initialSeed 0)
 
 
-stackToList : Stack a -> List ( Id, Status, { a | animationState : Animation.State } )
-stackToList toasties =
-    let
-        (Stack toasts seed) =
-            toasties
-    in
-    toasts
-
-
-listToStack : Stack a -> List ( Id, Status, { a | animationState : Animation.State } ) -> Stack a
-listToStack (Stack stackedToasts seed) toasts =
-    Stack toasts seed
-
-
 toastExtractor : ( Id, Status, a ) -> a
 toastExtractor ( id, status, toast ) =
     toast
@@ -281,8 +268,8 @@ toastExtractor ( id, status, toast ) =
 
     update msg model =
         case msg of
-            ToastyMsg subMsg ->
-                Toasty.update Toasty.config ToastyMsg subMsg model
+            ToastMsg subMsg ->
+                Toast.update Toast.config ToastMsg subMsg model
 
 -}
 update : Config msg a -> (Msg a -> msg) -> Msg a -> Toasted m a -> ( Toasted m a, Cmd msg )
@@ -326,6 +313,26 @@ update (Config cfg) tagger msg model =
             , Task.perform (\_ -> tagger (Remove targetId)) (Process.sleep <| cfg.transitionOutDuration)
             )
 
+        Animate targetIndex animMsg ->
+            let
+                newToasts =
+                    List.indexedMap
+                        (\index ( id, status, toast ) ->
+                            if index == targetIndex then
+                                ( id, status, animateToast animMsg toast )
+
+                            else
+                                ( id, status, toast )
+                        )
+                        toasts
+            in
+            ( { model | toasties = Stack newToasts seed }, Cmd.none )
+
+
+animateToast : Animation.Msg -> { a | animationState : Animation.State } -> { a | animationState : Animation.State }
+animateToast animMsg toast =
+    { toast | animationState = Animation.update animMsg toast.animationState }
+
 
 {-| Adds a toast to the stack and schedules its removal. It receives and returns
 a tuple of type '(model, Cmd msg)' so that you can easily pipe it to your app
@@ -335,10 +342,10 @@ update function branches.
         case msg of
             SomeAppMsg ->
                 ( newModel, Cmd.none )
-                    |> Toasty.addToast myConfig ToastyMsg (MyToast "Entity successfully created!")
+                    |> Toast.addToast myConfig ToastMsg (MyToast "Entity successfully created!")
 
-            ToastyMsg subMsg ->
-                Toasty.update myConfig ToastyMsg subMsg model
+            ToastMsg subMsg ->
+                Toast.update myConfig ToastMsg subMsg model
 
 -}
 addToast : Config msg a -> (Msg a -> msg) -> { a | animationState : Animation.State } -> ( Toasted m a, Cmd msg ) -> ( Toasted m a, Cmd msg )
@@ -403,8 +410,8 @@ give it a function that knows how to render your toasts model.
 
     view model =
         div []
-            [ h1 [] [ text "Toasty example" ]
-            , Toasty.view myConfig (\txt -> div [] [ text txt ]) ToastyMsg model.toasties
+            [ h1 [] [ text "Toast example" ]
+            , Toast.view myConfig (\txt -> div [] [ text txt ]) ToastMsg model.toasties
             ]
 
 -}
@@ -429,3 +436,25 @@ getNewId seed =
 itemContainer : Config msg a -> (Msg a -> msg) -> ( Id, Status, { a | animationState : Animation.State } ) -> ({ a | animationState : Animation.State } -> Element msg) -> ( String, Element msg )
 itemContainer (Config cfg) tagger ( id, status, toast ) toastView =
     ( String.fromInt id, el [ onClick (tagger <| TransitionOut id) ] (toastView toast) )
+
+
+
+-- SUBSCRIPTIONS
+
+
+subscription : (Msg a -> msg) -> Toasted m a -> Sub msg
+subscription tagger model =
+    let
+        (Stack toasts seed) =
+            model.toasties
+    in
+    Sub.batch
+        (List.indexedMap
+            (animationSubscriber tagger)
+            toasts
+        )
+
+
+animationSubscriber : (Msg a -> msg) -> Int -> ( Int, s, { a | animationState : Animation.State } ) -> Sub msg
+animationSubscriber tagger index ( id, _, toast ) =
+    Animation.subscription (Animate index >> tagger) [ toast.animationState ]

@@ -1,4 +1,4 @@
-module Toasty.Defaults exposing (config)
+module Toast.Defaults exposing (config)
 
 {-| This module provides a generic toast type with three variants (success, error and warning)
 each one supports a title and optional secondary text.
@@ -23,19 +23,19 @@ import Element.Border as Border
 import Element.Region
 import Html
 import Html.Attributes
-import Toasty
+import Toast
 
 
 {-| Default theme configuration.
 -}
-config : Toasty.Config msg toast
+config : Toast.Config msg toast
 config =
-    Toasty.config
-        |> Toasty.transitionOutDuration 600
-        |> Toasty.containerAttrs containerAttrs
-        |> Toasty.transitionInFn transitionIn
-        |> Toasty.transitionOutFn transitionOut
-        |> Toasty.delay 5000
+    Toast.config
+        |> Toast.transitionOutDuration 600
+        |> Toast.containerAttrs containerAttrs
+        |> Toast.transitionInFn transitionIn
+        |> Toast.transitionOutFn transitionOut
+        |> Toast.delay 5000
 
 
 transitionIn : { toast | animationState : Animation.State } -> { toast | animationState : Animation.State }

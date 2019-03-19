@@ -14,8 +14,8 @@ import Html
 import Html.Attributes
 import Html.Events exposing (..)
 import Json.Decode
-import Toasty
-import Toasty.Defaults
+import Toast
+import Toast.Defaults
 
 
 
@@ -23,15 +23,14 @@ import Toasty.Defaults
 
 
 type alias Model =
-    { toasties : Toasty.Stack Toast
+    { toasties : Toast.Stack Toast
     }
 
 
 type Msg
     = KeyPressed String
     | BtnClicked String
-    | ToastyMsg (Toasty.Msg Toast)
-    | Animate Int Animation.Msg
+    | ToastMsg (Toast.Msg Toast)
 
 
 type ToastType
@@ -57,7 +56,7 @@ keyDecoder =
 
 init : () -> ( Model, Cmd Msg )
 init flags =
-    ( { toasties = Toasty.initialState
+    ( { toasties = Toast.initialState
       }
     , Cmd.none
     )
@@ -89,19 +88,19 @@ transitionOut toast =
     }
 
 
-config : Toasty.Config Msg Toast
+config : Toast.Config Msg Toast
 config =
-    Toasty.Defaults.config
+    Toast.Defaults.config
 
 
 addToast : Toast -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
 addToast toast ( model, cmd ) =
-    Toasty.addToast config ToastyMsg toast ( model, cmd )
+    Toast.addToast config ToastMsg toast ( model, cmd )
 
 
 addPersistentToast : Toast -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
 addPersistentToast toast ( model, cmd ) =
-    Toasty.addPersistentToast config ToastyMsg toast ( model, cmd )
+    Toast.addPersistentToast config ToastMsg toast ( model, cmd )
 
 
 
@@ -224,32 +223,8 @@ update msg model =
             , Cmd.none
             )
 
-        ToastyMsg subMsg ->
-            Toasty.update config ToastyMsg subMsg model
-
-        Animate targetIndex animMsg ->
-            -- TODO this is the new worst part of the code... FIXME
-            let
-                toasts =
-                    Toasty.stackToList model.toasties
-
-                newToasts =
-                    List.indexedMap
-                        (\index ( id, status, toast ) ->
-                            if index == targetIndex then
-                                Debug.log "updating toast with" ( id, status, updateToast animMsg toast )
-
-                            else
-                                ( id, status, toast )
-                        )
-                        toasts
-            in
-            ( { model | toasties = Toasty.listToStack model.toasties newToasts }, Cmd.none )
-
-
-updateToast : Animation.Msg -> Toast -> Toast
-updateToast animMsg toast =
-    { toast | animationState = Animation.update animMsg toast.animationState }
+        ToastMsg subMsg ->
+            Toast.update config ToastMsg subMsg model
 
 
 
@@ -274,11 +249,6 @@ green =
 purple : Color
 purple =
     rgb255 153 51 255
-
-
-pink : Color
-pink =
-    rgb255 255 102 178
 
 
 {-| Default theme view handling the three toast variants.
@@ -340,7 +310,7 @@ genericToast itemAttributes { title, body } =
 view : Model -> Html.Html Msg
 view model =
     Element.layout
-        [ Element.inFront (Toasty.view config viewToast ToastyMsg model.toasties)
+        [ Element.inFront (Toast.view config viewToast ToastMsg model.toasties)
         ]
         (column
             [ padding 10, spacing 7 ]
@@ -348,7 +318,7 @@ view model =
                 [ Element.Region.heading 1
                 , Font.extraBold
                 ]
-                (text "Toasty demo")
+                (text "Toast demo")
             , paragraph []
                 [ text "Click for adding a "
                 , Input.button
@@ -390,7 +360,7 @@ view model =
             , paragraph []
                 [ link []
                     { url = "http://package.elm-lang.org/packages/pablen/toasty/latest"
-                    , label = text "Toasty at package.elm-lang.org"
+                    , label = text "Toast at package.elm-lang.org"
                     }
                 ]
             ]
@@ -414,17 +384,6 @@ main =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        (List.indexedMap
-            animationSubscriber
-            (Toasty.stackToList model.toasties)
-            ++ [ Browser.Events.onKeyPress keyDecoder ]
-        )
-
-
-animationSubscriber : Int -> ( Int, a, Toast ) -> Sub Msg
-animationSubscriber index ( id, _, toast ) =
-    Animation.subscription (Animate index) [ toast.animationState ]
-
-
-
--- \_ -> Browser.Events.onKeyPress keyDecoder
+        [ Browser.Events.onKeyPress keyDecoder
+        , Toast.subscription ToastMsg model
+        ]
